@@ -76,6 +76,12 @@ class PlayStrm(object):
         '''
         clear_playlist = self.actions.detect_playlist(self.info['Item'])
 
+        if clear_playlist or window('emby_playinit') == 'widget':
+
+            window('emby_playinit', "widget")
+            self.actions.get_playlist(self.info['Item']).clear()
+            clear_playlist = True
+
         listitem = xbmcgui.ListItem()
         self.info['StartIndex'] = max(self.info['KodiPlaylist'].getposition(), 0)
         self.info['Index'] = self.info['StartIndex'] + 1
@@ -85,11 +91,11 @@ class PlayStrm(object):
         if clear_playlist:
 
             LOG.info("[ forced playback ]")
-            xbmc.Player().play(self.info['KodiPlaylist'], startpos=self.info['StartIndex'], windowed=False)
-            self.remove_from_playlist(self.info['StartIndex'])
+            xbmc.Player().play(self.info['KodiPlaylist'], startpos=self.info['StartIndex'] + 1, windowed=False)
         else:
             xbmc.Player().playnext()
-            self.remove_from_playlist(self.info['StartIndex'])
+        
+        self.remove_from_playlist(self.info['StartIndex'])
 
 
     def _set_playlist(self, listitem):

@@ -83,15 +83,18 @@ class Monitor(xbmc.Monitor):
                 ''' We have to clear the playlist if it was stopped before it has been played completely.
                     Otherwise the next played item will be added the previous queue.
                 '''
+
                 if method == "Player.OnStop":
                     xbmc.sleep(3000) # let's wait for the player so we don't clear the canceled playlist by mistake.
 
                     if xbmc.getCondVisibility("!Player.HasMedia + !Window.IsVisible(busydialog)"):
 
-                        xbmc.executebuiltin("Playlist.Clear")
-                        LOG.info("[ playlist ] cleared")
+                        xbmc.executebuiltin('Playlist.Clear')
+                        window('emby_playinit', clear=True)
+                        LOG.info("[ playlist cleared ]")
 
                 return
+
 
             data = json.loads(data)
 

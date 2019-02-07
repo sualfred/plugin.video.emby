@@ -173,39 +173,16 @@ class QueuePlay(threading.Thread):
 
     def run(self):
 
-        count = 0
-
         with self.lock:
 
             if self.item_id not in self.server.queue:
                 return
 
-            player = xbmc.Player()
-
+            LOG.info("[ queue play/%s ]", self.item_id)
             try:
-                current_file = player.getPlayingFile()
-            except Exception:
+                self.playstrm.play()
+            except Exception as error:
+                xbmc.Player().stop()
 
-                while count < 5:
-                    try:
-                        current_file = player.getPlayingFile()
-                        count = 0
-
-                        break
-                    except Exception:
-                        count += 1
-
-                    if xbmc.sleep(200):
-                        return
-                else:
-                    return
-
-            if current_file.endswith('loading.mp4'):
-
-                try:
-                    self.playstrm.play()
-                except Exception as error:
-                    player.stop()
-
-                while self.item_id in self.server.queue:
-                    self.server.queue.remove(self.item_id)
+            while self.item_id in self.server.queue:
+                self.server.queue.remove(self.item_id)
