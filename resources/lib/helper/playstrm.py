@@ -91,7 +91,7 @@ class PlayStrm(object):
         if clear_playlist:
 
             LOG.info("[ forced playback ]")
-            xbmc.Player().play(self.info['KodiPlaylist'], startpos=self.info['StartIndex'] + 1, windowed=False)
+            xbmc.Player().play(self.info['KodiPlaylist'], startpos=self.info['StartIndex'], windowed=False)
         else:
             xbmc.Player().playnext()
         
