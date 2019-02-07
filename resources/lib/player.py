@@ -69,6 +69,13 @@ class Player(xbmc.Player):
 
                 return
 
+        if current_file.endswith('loading.mp4'):
+            
+            LOG.debug("loading.mp4 detected.")
+            self.pause()
+
+            return
+
         items = window('emby_play.json')
         item = None
 

@@ -7,11 +7,17 @@ import logging
 import httplib
 import threading
 import urlparse
+import os
 
 import xbmc
+import xbmcaddon
+import xbmcgui
+
+from helper import playstrm
 
 #################################################################################################
 
+ADDON = xbmcaddon.Addon(id='plugin.video.emby')
 PORT = 57578
 LOG = logging.getLogger("EMBY."+__name__)
 
@@ -61,9 +67,13 @@ class HttpServer(BaseHTTPServer.HTTPServer):
         ''' Handle one request at a time until stopped.
         '''
         self.stop = False
+        self.play = False
+        self.queue = []
+        self.lock = threading.Lock()
 
         while not self.stop:
             self.handle_request()
+
 
 
 class requestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
@@ -118,7 +128,10 @@ class requestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         try:
             params = self.get_params()
 
-            if not params or params.get('Id') is None:
+            if 'file-poster.jpg' in self.path:
+                xbmc.log("hello file-poster.jpg", xbmc.LOGWARNING)
+
+            if not params or params.get('Id') is None or 'file.strm' not in self.path:
                 raise IndexError("Incomplete URL format")
 
             if 'extrafanart' in params['Id']:
@@ -126,13 +139,15 @@ class requestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
             xbmc.log("[ webservice ] path: %s params: %s" % (str(self.path), str(params)), xbmc.LOGWARNING)
 
-            path = ("plugin://plugin.video.emby?mode=play&id=%s&dbid=%s&filename=%s&transcode=%s"
-                    % (params['Id'], params.get('KodiId'), params.get('Name'), params.get('transcode') or False))
-
             self.send_response(200)
             self.send_header('Content-type','text/html')
             self.end_headers()
-            self.wfile.write(path)
+
+            play = playstrm.PlayStrm(params, params.get('ServerId'))
+            self.wfile.write(xbmc.translatePath(os.path.join(ADDON.getAddonInfo('path'), 'resources', 'lib', 'helper', 'loading.mp4')).decode('utf-8'))
+
+            self.server.queue.append(params['Id'])
+            QueuePlay(self.server, self.server.lock, play, params['Id']).start()
 
         except IndexError as error:
 
@@ -146,3 +161,51 @@ class requestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         return
 
+class QueuePlay(threading.Thread):
+
+    def __init__(self, server, lock, playstrm, item_id):
+
+        self.item_id = item_id
+        self.server = server
+        self.lock = lock
+        self.playstrm = playstrm
+        threading.Thread.__init__(self)
+
+    def run(self):
+
+        count = 0
+
+        with self.lock:
+
+            if self.item_id not in self.server.queue:
+                return
+
+            player = xbmc.Player()
+
+            try:
+                current_file = player.getPlayingFile()
+            except Exception:
+
+                while count < 5:
+                    try:
+                        current_file = player.getPlayingFile()
+                        count = 0
+
+                        break
+                    except Exception:
+                        count += 1
+
+                    if xbmc.sleep(200):
+                        return
+                else:
+                    return
+
+            if current_file.endswith('loading.mp4'):
+
+                try:
+                    self.playstrm.play()
+                except Exception as error:
+                    player.stop()
+
+                while self.item_id in self.server.queue:
+                    self.server.queue.remove(self.item_id)
