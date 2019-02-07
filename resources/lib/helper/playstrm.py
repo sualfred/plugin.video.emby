@@ -10,7 +10,7 @@ import xbmcvfs
 
 import api
 import playutils
-from . import _, settings, window, JSONRPC
+from . import _, settings, dialog, window, JSONRPC
 from objects import Actions
 from emby import Emby
 
@@ -46,10 +46,10 @@ class PlayStrm(object):
         self.params = params
         self._detect_play()
 
-    def skip_placeholder(self):
+    def remove_from_playlist(self, index, playlist_id=None):
 
-        xbmc.Player().playnext()
-        JSONRPC('Playlist.Remove').execute({'playlistid': 1, 'position': self.info['StartIndex']})
+        playlist = playlist_id or 1
+        JSONRPC('Playlist.Remove').execute({'playlistid': playlist_id, 'position': index})
 
     def _get_intros(self):
         self.info['Intros'] = self.info['Server']['api'].get_intros(self.info['Id'])
@@ -84,10 +84,13 @@ class PlayStrm(object):
 
         if clear_playlist:
 
-            xbmc.Player().play(self.info['KodiPlaylist'], startpos=self.info['StartIndex'] + 1, windowed=False)
-            JSONRPC('Playlist.Remove').execute({'playlistid': 1, 'position': self.info['StartIndex'] + 1})
+            LOG.info("[ forced playback ]")
+            xbmc.Player().play(self.info['KodiPlaylist'], startpos=self.info['StartIndex'], windowed=False)
+            self.remove_from_playlist(self.info['StartIndex'])
         else:
-            self.skip_placeholder()
+            xbmc.Player().playnext()
+            self.remove_from_playlist(self.info['StartIndex'])
+
 
     def _set_playlist(self, listitem):
 
