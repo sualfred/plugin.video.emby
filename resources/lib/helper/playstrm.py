@@ -2,6 +2,8 @@
 
 #################################################################################################
 
+import logging
+
 import xbmc
 import xbmcgui
 import xbmcvfs
@@ -14,6 +16,10 @@ from emby import Emby
 
 #################################################################################################
 
+LOG = logging.getLogger("EMBY."+__name__)
+
+#################################################################################################
+
 
 class PlayStrm(object):
 
@@ -23,7 +29,7 @@ class PlayStrm(object):
             the webserivce returns a dummy file to play. Meanwhile, 
             PlayStrm adds the real listitems for items to play to the playlist.
         '''
-        xbmc.log("[ play strm ]", xbmc.LOGWARNING)
+        LOG.info("[ play strm ]")
         self.info = {
             'Intros': None,
             'Item': None,
@@ -77,7 +83,7 @@ class PlayStrm(object):
         self._set_playlist(listitem)
 
         if clear_playlist:
-            xbmc.log("hello world -- clearing", xbmc.LOGWARNING)
+
             xbmc.Player().play(self.info['KodiPlaylist'], startpos=self.info['StartIndex'] + 1, windowed=False)
             JSONRPC('Playlist.Remove').execute({'playlistid': 1, 'position': self.info['StartIndex'] + 1})
         else:
@@ -144,13 +150,13 @@ class PlayStrm(object):
                 if not resp:
 
                     enabled = False
-                    xbmc.log("Skip trailers.", xbmc.LOGWARNING)
+                    LOG.info("Skip trailers.")
 
             if enabled:
                 for intro in self.info['Intros']['Items']:
 
                     listitem = xbmcgui.ListItem()
-                    xbmc.log("[ intro/%s ] %s" % (intro['Id'], intro['Name']), xbmc.LOGWARNING)
+                    LOG.info("[ intro/%s ] %s", intro['Id'], intro['Name'])
 
                     play = playutils.PlayUtilsStrm(intro, False, self.info['ServerId'], self.info['Server'])
                     source = play.select_source(play.get_sources())
@@ -170,7 +176,7 @@ class PlayStrm(object):
         for part in self.info['AdditionalParts']['Items']:
 
             listitem = xbmcgui.ListItem()
-            xbmc.log("[ part/%s ] %s" % (part['Id'], part['Name']), xbmc.LOGWARNING)
+            LOG.info("[ part/%s ] %s", part['Id'], part['Name'])
 
             play = playutils.PlayUtilsStrm(part, self.info['Transcode'], self.info['ServerId'], self.info['Server'])
             source = play.select_source(play.get_sources())

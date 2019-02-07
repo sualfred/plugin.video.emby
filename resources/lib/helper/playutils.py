@@ -657,12 +657,12 @@ class PlayUtilsStrm(object):
         ''' Return sources based on the optional source_id or the device profile.
         '''
         info = self.info['Server']['api'].get_play_info(self.item['Id'], self.get_device_profile())
-        xbmc.log(str(info), xbmc.LOGWARNING)
+        LOG.info(info)
         self.info['PlaySessionId'] = info['PlaySessionId']
         sources = []
 
         if not info.get('MediaSources'):
-            xbmc.log("No MediaSources found.", xbmc.LOGWARNING)
+            LOG.info("No MediaSources found.")
 
         elif source_id:
             for source in info:
@@ -674,7 +674,7 @@ class PlayUtilsStrm(object):
 
         elif not self.is_selection(info) or len(info['MediaSources']) == 1:
 
-            xbmc.log("Skip source selection.", xbmc.LOGWARNING)
+            LOG.info("Skip source selection.")
             sources.append(info['MediaSources'][0])
 
         else:
@@ -695,7 +695,7 @@ class PlayUtilsStrm(object):
             if resp > -1:
                 source = sources[resp]
             else:
-                xbmc.log("No media source selected.", xbmc.LOGWARNING)
+                LOG.info("No media source selected.")
 
                 return False
         else:
@@ -710,22 +710,22 @@ class PlayUtilsStrm(object):
         ''' Do not allow source selection for.
         '''
         if self.item['MediaType'] != 'Video':
-            xbmc.log("MediaType is not a video.", xbmc.LOGWARNING)
+            LOG.info("MediaType is not a video.")
 
             return False
 
         elif self.item['Type'] == 'TvChannel':
-            xbmc.log("TvChannel detected.", xbmc.LOGWARNING)
+            LOG.info("TvChannel detected.")
 
             return False
 
         elif len(sources) == 1 and sources[0]['Type'] == 'Placeholder':
-            xbmc.log("Placeholder detected.", xbmc.LOGWARNING)
+            LOG.info("Placeholder detected.")
 
             return False
 
         elif 'SourceType' in self.item and self.item['SourceType'] != 'Library':
-            xbmc.log("SourceType not from library.", xbmc.LOGWARNING)
+            LOG.info("SourceType not from library.")
 
             return False
 
@@ -736,18 +736,18 @@ class PlayUtilsStrm(object):
         path = self.direct_play(source)
 
         if xbmcvfs.exists(self.info['Path']):
-            xbmc.log("Path exists.", xbmc.LOGWARNING)
+            LOG.info("Path exists.")
 
             return True
 
-        xbmc.log("Failed to find file.", xbmc.LOGWARNING)
+        LOG.info("Failed to find file.")
 
         return False
 
     def is_strm(self, source):
 
         if source.get('Container') == 'strm' or self.item['Path'].endswith('.strm'):
-            xbmc.log("strm detected", xbmc.LOGWARNING)
+            LOG.info("strm detected")
 
             return True
 
@@ -775,16 +775,16 @@ class PlayUtilsStrm(object):
 
         if source.get('Protocol') == 'Http' or source['SupportsDirectPlay'] and (self.is_strm(source) or not settings('playFromStream.bool') and self.is_file_exists(source)):
 
-            xbmc.log("--[ direct play ]", xbmc.LOGWARNING)
+            LOG.info("--[ direct play ]")
             self.direct_play(source)
 
         elif source['SupportsDirectStream']:
 
-            xbmc.log("--[ direct stream ]", xbmc.LOGWARNING)
+            LOG.info("--[ direct stream ]")
             self.direct_url(source)
 
         else:
-            xbmc.log("--[ transcode ]", xbmc.LOGWARNING)
+            LOG.info("--[ transcode ]")
             self.transcode(source, audio, subtitle)
 
         self.info['AudioStreamIndex'] = self.info.get('AudioStreamIndex') or source.get('DefaultAudioStreamIndex')
@@ -799,7 +799,7 @@ class PlayUtilsStrm(object):
         ''' Get live stream media info.
         '''
         info = self.info['Server']['api'].get_live_stream(self.item['Id'], self.info['PlaySessionId'],source['OpenToken'], self.get_device_profile())
-        xbmc.log(str(info), xbmc.LOGWARNING)
+        LOG.info(info)
 
         if info['MediaSource'].get('RequiresClosing'):
             self.info['LiveStreamId'] = source['LiveStreamId']
