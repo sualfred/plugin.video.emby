@@ -161,6 +161,9 @@ class PlayStrm(object):
                     enabled = False
                     LOG.info("Skip trailers.")
 
+            elif int(self.info['KodiPlaylist'].getposition()) > 0 and self.info['Item']['Type'] == 'Episode':
+                enabled = False
+
             if enabled:
                 for intro in self.info['Intros']['Items']:
 
