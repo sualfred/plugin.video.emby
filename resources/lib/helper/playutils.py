@@ -657,7 +657,7 @@ class PlayUtilsStrm(object):
         ''' Return sources based on the optional source_id or the device profile.
         '''
         info = self.info['Server']['api'].get_play_info(self.item['Id'], self.get_device_profile())
-        LOG.info(info)
+        #LOG.info(info)
         self.info['PlaySessionId'] = info['PlaySessionId']
         sources = []
 

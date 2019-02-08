@@ -75,16 +75,32 @@ class PlayStrm(object):
 
         ''' Create and add listitems to the Kodi playlist.
         '''
-        LOG.info(">[ play ]")
         clear_playlist = self.actions.detect_playlist(self.info['Item'])
+
+        items = JSONRPC('Playlist.GetItems').execute({'playlistid': 1})
+
+        for index, item in enumerate(reversed(items['result']['items'])):
+
+            if item['label'] == 'emby-loading.mp4':
+    
+                playlist_index = len(items['result']['items']) - index
+                LOG.info("removing: %s", playlist_index)
+                self.remove_from_playlist(playlist_index)
+
+        self.actions.verify_playlist()
 
 
         if play_folder:
-            LOG.info("hello world3?")
+
+            LOG.info("[ play folder ]")
             clear_playlist = False
-            self.info['StartIndex'] = max(self.info['KodiPlaylist'].getposition(), 0) + 2
+            #self.info['StartIndex'] = max(self.info['KodiPlaylist'].getposition(), 0) 
+            #self.info['Index'] = self.info['StartIndex'] + 1
         else:
-            self.info['StartIndex'] = max(self.info['KodiPlaylist'].getposition(), 0) + 1
+            LOG.info("[ play ]")
+
+        self.info['StartIndex'] = max(self.info['KodiPlaylist'].getposition(), 0)
+        self.info['Index'] = self.info['StartIndex'] + 1
 
         if clear_playlist or window('emby_playinit') == 'widget':
 
@@ -92,22 +108,32 @@ class PlayStrm(object):
             self.actions.get_playlist(self.info['Item']).clear()
             clear_playlist = True
 
-        LOG.info("hello world4?")
         listitem = xbmcgui.ListItem()
-        self.info['Index'] = self.info['StartIndex']
-        LOG.info(self.info['Index'])
-
+        #self.info['Index'] = self.info['StartIndex'] + 1
+        LOG.info("[ index/%s ]", self.info['Index'])
         self._set_playlist(listitem)
 
         if clear_playlist:
-            LOG.info("[ clear playlist ]")
+            LOG.info("[ forced play ]")
             xbmc.Player().play(self.info['KodiPlaylist'], startpos=self.info['StartIndex'], windowed=False)
         else:
             xbmc.Player().playnext()
 
-        LOG.info("removing :%s", self.info['StartIndex'])
-        self.remove_from_playlist(self.info['StartIndex'])
-        LOG.info("<[ play ]")
+        #self.remove_from_playlist(self.info['StartIndex'])
+
+        items = JSONRPC('Playlist.GetItems').execute({'playlistid': 1})
+
+        for index, item in enumerate(reversed(items['result']['items'])):
+
+            if item['label'] == 'emby-loading.mp4':
+    
+                playlist_index = len(items['result']['items']) - index - 1
+                LOG.info("removing: %s", playlist_index)
+                self.remove_from_playlist(playlist_index)
+                self.info['KodiPlaylist'].remove('emby-loading.mp4')
+
+        self.actions.verify_playlist()
+
 
         return self.info['Index']
 
@@ -126,8 +152,6 @@ class PlayStrm(object):
         listitem.setPath(url)
         self.info['KodiPlaylist'].add(url=url, listitem=listitem, index=self.info['Index'])
 
-        LOG.info("removing :%s", self.info['StartIndex'])
-        #self.remove_from_playlist(self.info['StartIndex'])
         LOG.info("<[ play folder ]")
 
         return self.info['Index']

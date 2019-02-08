@@ -52,7 +52,7 @@ class WebService(threading.Thread):
             server = HttpServer(('127.0.0.1', PORT), requestHandler)
             server.serve_forever()
         except Exception as error:
-
+            LOG.info("hello world!!")
             if '10053' not in error: # ignore host diconnected errors
                 LOG.exception(error)
 
@@ -88,6 +88,10 @@ class requestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         ''' Mute the webservice requests.
         '''
+        pass
+
+    def log_error(self, *args, **kwargs):
+
         pass
 
     def do_QUIT(self):
@@ -141,8 +145,10 @@ class requestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_header('Content-type','text/html')
             self.end_headers()
 
+            loading_videos = ['default', 'black']
+
             play = playstrm.PlayStrm(params, params.get('ServerId'))
-            loading = xbmc.translatePath(os.path.join(ADDON.getAddonInfo('path'), 'resources', 'skins', 'default', 'media', 'videos', 'default' if int(settings('loadingVideo')) == 0 else 'black', 'emby-loading.mp4')).decode('utf-8')
+            loading = xbmc.translatePath(os.path.join(ADDON.getAddonInfo('path'), 'resources', 'skins', 'default', 'media', 'videos', loading_videos[int(settings('loadingVideo') or 0)], 'emby-loading.mp4')).decode('utf-8')
             self.wfile.write(loading)
 
             self.server.pending.append(params['Id'])
@@ -156,16 +162,16 @@ class requestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         except IndexError as error:
 
-            xbmc.log(str(error), xbmc.LOGWARNING)
-            try:
-                self.send_error(404, "Exception occurred: %s" % error)
-            except Exception as error:
-                xbmc.log(str(error), xbmc.LOGWARNING)
+            #xbmc.log(str(error), xbmc.LOGWARNING)
+            self.send_error(404)
 
         except Exception as error:
 
-            xbmc.log(str(error), xbmc.LOGWARNING)
-            self.send_error(500, "Exception occurred: %s" % error)
+            #xbmc.log(str(error), xbmc.LOGWARNING)
+            try:
+                self.send_error(500, "Exception occurred: %s" % error)
+            except Exception as error:
+                pass
 
         return
 
@@ -179,7 +185,7 @@ class QueuePlay(threading.Thread):
     def run(self):
 
         current_position = max(xbmc.PlayList(xbmc.PLAYLIST_VIDEO).getposition(), 0)
-
+        LOG.info("[ current position/%s ]", current_position)
         while True:
 
             try:
@@ -200,7 +206,7 @@ class QueuePlay(threading.Thread):
                 continue
 
             LOG.info("[ queue play/%s ]", item_id)
-            LOG.info(self.server.pending)
+
             try:
                 if self.server.pending.count(item_id) != len(self.server.pending):
                     current_position = playstrm.play_folder(current_position)
