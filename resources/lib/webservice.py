@@ -14,7 +14,7 @@ import xbmc
 import xbmcaddon
 import xbmcgui
 
-from helper import playstrm
+from helper import settings, playstrm
 
 #################################################################################################
 
@@ -129,9 +129,7 @@ class requestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         '''
         try:
             params = self.get_params()
-
-            if 'file-poster.jpg' in self.path:
-                xbmc.log("hello file-poster.jpg", xbmc.LOGWARNING)
+            xbmc.log("[ webservice ] path: %s params: %s" % (str(self.path), str(params)), xbmc.LOGWARNING)
 
             if not params or params.get('Id') is None or 'file.strm' not in self.path:
                 raise IndexError("Incomplete URL format")
@@ -139,17 +137,13 @@ class requestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             if 'extrafanart' in params['Id']:
                 raise IndexError("Incorrect Id format %s" % params['Id'])
 
-            xbmc.log("[ webservice ] path: %s params: %s" % (str(self.path), str(params)), xbmc.LOGWARNING)
-
-            #play = playstrm.PlayStrm(params, params.get('ServerId'))
-            #self.server.queue.append(params['Id'])
-
-            self.send_response(200) #if not int(xbmc.PlayList(xbmc.PLAYLIST_VIDEO).size()) > 1 else self.send_response(404)
-            #self.send_header('Content-type','text/html')
+            self.send_response(200)
+            self.send_header('Content-type','text/html')
             self.end_headers()
 
             play = playstrm.PlayStrm(params, params.get('ServerId'))
-            self.wfile.write(xbmc.translatePath(os.path.join(ADDON.getAddonInfo('path'), 'resources', 'lib', 'helper', 'loading.mp4')).decode('utf-8'))
+            loading = xbmc.translatePath(os.path.join(ADDON.getAddonInfo('path'), 'resources', 'skins', 'default', 'media', 'videos', 'default' if int(settings('loadingVideo')) == 0 else 'black', 'emby-loading.mp4')).decode('utf-8')
+            self.wfile.write(loading)
 
             self.server.pending.append(params['Id'])
             self.server.queue.put((play, params,))
@@ -163,7 +157,10 @@ class requestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         except IndexError as error:
 
             xbmc.log(str(error), xbmc.LOGWARNING)
-            self.send_error(404, "Exception occurred: %s" % error)
+            try:
+                self.send_error(404, "Exception occurred: %s" % error)
+            except Exception as error:
+                xbmc.log(str(error), xbmc.LOGWARNING)
 
         except Exception as error:
 
@@ -208,7 +205,7 @@ class QueuePlay(threading.Thread):
                 if self.server.pending.count(item_id) != len(self.server.pending):
                     current_position = playstrm.play_folder(current_position)
                 else:
-                    current_position = playstrm.play()
+                    current_position = playstrm.play(params.get('mode') == 'playfolder')
 
                     while item_id in self.server.pending:
                         self.server.pending.remove(item_id)

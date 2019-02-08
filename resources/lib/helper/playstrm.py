@@ -78,8 +78,14 @@ class PlayStrm(object):
         LOG.info(">[ play ]")
         clear_playlist = self.actions.detect_playlist(self.info['Item'])
 
-        LOG.info("hello world3?")
-        
+
+        if play_folder:
+            LOG.info("hello world3?")
+            clear_playlist = False
+            self.info['StartIndex'] = max(self.info['KodiPlaylist'].getposition(), 0) + 2
+        else:
+            self.info['StartIndex'] = max(self.info['KodiPlaylist'].getposition(), 0) + 1
+
         if clear_playlist or window('emby_playinit') == 'widget':
 
             window('emby_playinit', "widget")
@@ -88,13 +94,13 @@ class PlayStrm(object):
 
         LOG.info("hello world4?")
         listitem = xbmcgui.ListItem()
-        self.info['StartIndex'] = max(self.info['KodiPlaylist'].getposition(), 0)
-        self.info['Index'] = self.info['StartIndex'] + 1
+        self.info['Index'] = self.info['StartIndex']
         LOG.info(self.info['Index'])
 
         self._set_playlist(listitem)
 
         if clear_playlist:
+            LOG.info("[ clear playlist ]")
             xbmc.Player().play(self.info['KodiPlaylist'], startpos=self.info['StartIndex'], windowed=False)
         else:
             xbmc.Player().playnext()
@@ -108,26 +114,21 @@ class PlayStrm(object):
     def play_folder(self, position=None):
         
         LOG.info("[ play folder ]")
+        window('emby_playinit', "playfolder")
+
         listitem = xbmcgui.ListItem()
         self.info['StartIndex'] = position or max(self.info['KodiPlaylist'].size(), 0)
         self.info['Index'] = self.info['StartIndex'] + 1
         LOG.info(self.info['Index'])
 
-        #self._set_playlist(listitem)
-
-        if self.info['StartIndex'] < 1:
-            self._set_playlist(listitem)
-            xbmc.Player().playnext()
-        else:
-            self.actions.set_listitem(self.info['Item'], listitem, self.info['DbId'])
-            url = "http://127.0.0.1:57578/emby/play/file.strm?Id=%s" % self.info['Id']
-            listitem.setPath(url)
-            self.info['KodiPlaylist'].add(url=url, listitem=listitem, index=self.info['Index'])
-            self.info['Index'] += 1
+        self.actions.set_listitem(self.info['Item'], listitem, self.info['DbId'])
+        url = "http://127.0.0.1:57578/emby/play/file.strm?Id=%s&mode=playfolder" % self.info['Id']
+        listitem.setPath(url)
+        self.info['KodiPlaylist'].add(url=url, listitem=listitem, index=self.info['Index'])
 
         LOG.info("removing :%s", self.info['StartIndex'])
-        self.remove_from_playlist(self.info['StartIndex'])
-        LOG.info("<[ play ]")
+        #self.remove_from_playlist(self.info['StartIndex'])
+        LOG.info("<[ play folder ]")
 
         return self.info['Index']
 
