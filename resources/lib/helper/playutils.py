@@ -264,12 +264,10 @@ class PlayUtils(object):
         return self.info['Path']
 
     def direct_play(self, source):
-        LOG.info("herrow?")
+
         API = api.API(self.item, self.info['ServerAddress'])
-        LOG.info("herrow?2")
         self.info['Method'] = "DirectPlay"
         self.info['Path'] = API.get_file_path(source.get('Path'))
-        LOG.info("herrow?3")
 
         return self.info['Path']
 

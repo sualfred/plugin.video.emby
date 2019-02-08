@@ -181,13 +181,16 @@ class QueuePlay(threading.Thread):
 
     def run(self):
 
+        current_position = max(xbmc.PlayList(xbmc.PLAYLIST_VIDEO).getposition(), 0)
+
         while True:
-            LOG.info("hello run")
+
             try:
                 playstrm, params = self.server.queue.get(timeout=1)
             except Queue.Empty:
+
                 self.server.threads.remove(self)
-                LOG.info(self.server.threads)
+                self.server.pending = []
 
                 break
 
@@ -200,14 +203,17 @@ class QueuePlay(threading.Thread):
                 continue
 
             LOG.info("[ queue play/%s ]", item_id)
-
+            LOG.info(self.server.pending)
             try:
-                playstrm.play()
+                if self.server.pending.count(item_id) != len(self.server.pending):
+                    current_position = playstrm.play_folder(current_position)
+                else:
+                    current_position = playstrm.play()
+
+                    while item_id in self.server.pending:
+                        self.server.pending.remove(item_id)
             except Exception as error:
                 LOG.error(error)
                 xbmc.Player().stop()
-
-            while item_id in self.server.pending:
-                self.server.pending.remove(item_id)
 
             self.server.queue.task_done()

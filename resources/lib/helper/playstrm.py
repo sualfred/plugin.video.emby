@@ -71,13 +71,13 @@ class PlayStrm(object):
             self._get_item()
             self._get_additional_parts()
 
-    def play(self):
+    def play(self, play_folder=False):
 
         ''' Create and add listitems to the Kodi playlist.
         '''
         LOG.info(">[ play ]")
         clear_playlist = self.actions.detect_playlist(self.info['Item'])
-        #clear_playlist = False
+
         LOG.info("hello world3?")
         
         if clear_playlist or window('emby_playinit') == 'widget':
@@ -92,33 +92,44 @@ class PlayStrm(object):
         self.info['Index'] = self.info['StartIndex'] + 1
         LOG.info(self.info['Index'])
 
-        ''' Workaround to win a possible race condition with the player.
-            Otherwise there is a high chance that everything gets stalled
-        '''
-        """
-        for i in range(1,100):
-
-            if xbmc.getCondVisibility('Player.HasMedia'):
-                break
-
-            xbmc.sleep(50)
-        """
-
-        LOG.info("hello world2?")
         self._set_playlist(listitem)
-        LOG.info("hello world?")
+
         if clear_playlist:
             xbmc.Player().play(self.info['KodiPlaylist'], startpos=self.info['StartIndex'], windowed=False)
-        elif not window('emby_playinit'):
-            LOG.info("herrow?")
-            window('emby_playinit', "playnext")
+        else:
             xbmc.Player().playnext()
 
-
         LOG.info("removing :%s", self.info['StartIndex'])
-        #self.remove_from_playlist(self.info['StartIndex'])
+        self.remove_from_playlist(self.info['StartIndex'])
         LOG.info("<[ play ]")
 
+        return self.info['Index']
+
+    def play_folder(self, position=None):
+        
+        LOG.info("[ play folder ]")
+        listitem = xbmcgui.ListItem()
+        self.info['StartIndex'] = position or max(self.info['KodiPlaylist'].size(), 0)
+        self.info['Index'] = self.info['StartIndex'] + 1
+        LOG.info(self.info['Index'])
+
+        #self._set_playlist(listitem)
+
+        if self.info['StartIndex'] < 1:
+            self._set_playlist(listitem)
+            xbmc.Player().playnext()
+        else:
+            self.actions.set_listitem(self.info['Item'], listitem, self.info['DbId'])
+            url = "http://127.0.0.1:57578/emby/play/file.strm?Id=%s" % self.info['Id']
+            listitem.setPath(url)
+            self.info['KodiPlaylist'].add(url=url, listitem=listitem, index=self.info['Index'])
+            self.info['Index'] += 1
+
+        LOG.info("removing :%s", self.info['StartIndex'])
+        self.remove_from_playlist(self.info['StartIndex'])
+        LOG.info("<[ play ]")
+
+        return self.info['Index']
 
     def _set_playlist(self, listitem):
 
