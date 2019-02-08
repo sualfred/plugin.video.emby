@@ -26,10 +26,10 @@ class PlayStrm(object):
     def __init__(self, params, server_id=None):
 
         ''' Workflow: Strm that calls our webservice in database. When played,
-            the webserivce returns a dummy file to play. Meanwhile, 
+            the webserivce returns a dummy file to play. Meanwhile,
             PlayStrm adds the real listitems for items to play to the playlist.
         '''
-        LOG.info("[ play strm ]")
+        LOG.info(">[ play strm ]")
         self.info = {
             'Intros': None,
             'Item': None,
@@ -45,6 +45,7 @@ class PlayStrm(object):
         self.set_listitem = self.actions.set_listitem
         self.params = params
         self._detect_play()
+        LOG.info("<[ play strm ]")
 
     def remove_from_playlist(self, index, playlist_id=None):
 
@@ -61,7 +62,7 @@ class PlayStrm(object):
         self.info['Item'] = self.info['Server']['api'].get_item(self.info['Id'])
 
     def _detect_play(self):
-        
+
         ''' Download all information needed to build the playlist for item requested.
         '''
         if self.info['Id']:
@@ -74,28 +75,49 @@ class PlayStrm(object):
 
         ''' Create and add listitems to the Kodi playlist.
         '''
+        LOG.info(">[ play ]")
         clear_playlist = self.actions.detect_playlist(self.info['Item'])
-
+        #clear_playlist = False
+        LOG.info("hello world3?")
+        
         if clear_playlist or window('emby_playinit') == 'widget':
 
             window('emby_playinit', "widget")
             self.actions.get_playlist(self.info['Item']).clear()
             clear_playlist = True
 
+        LOG.info("hello world4?")
         listitem = xbmcgui.ListItem()
         self.info['StartIndex'] = max(self.info['KodiPlaylist'].getposition(), 0)
         self.info['Index'] = self.info['StartIndex'] + 1
+        LOG.info(self.info['Index'])
 
+        ''' Workaround to win a possible race condition with the player.
+            Otherwise there is a high chance that everything gets stalled
+        '''
+        """
+        for i in range(1,100):
+
+            if xbmc.getCondVisibility('Player.HasMedia'):
+                break
+
+            xbmc.sleep(50)
+        """
+
+        LOG.info("hello world2?")
         self._set_playlist(listitem)
-
+        LOG.info("hello world?")
         if clear_playlist:
-
-            LOG.info("[ forced playback ]")
             xbmc.Player().play(self.info['KodiPlaylist'], startpos=self.info['StartIndex'], windowed=False)
-        else:
+        elif not window('emby_playinit'):
+            LOG.info("herrow?")
+            window('emby_playinit', "playnext")
             xbmc.Player().playnext()
-        
-        self.remove_from_playlist(self.info['StartIndex'])
+
+
+        LOG.info("removing :%s", self.info['StartIndex'])
+        #self.remove_from_playlist(self.info['StartIndex'])
+        LOG.info("<[ play ]")
 
 
     def _set_playlist(self, listitem):
@@ -139,7 +161,7 @@ class PlayStrm(object):
         self.set_listitem(self.info['Item'], listitem, self.info['DbId'], seektime)
         listitem.setPath(self.info['Item']['PlaybackInfo']['Path'])
         playutils.set_properties(self.info['Item'], self.info['Item']['PlaybackInfo']['Method'], self.info['ServerId'])
-        
+
         self.info['KodiPlaylist'].add(url=self.info['Item']['PlaybackInfo']['Path'], listitem=listitem, index=self.info['Index'])
         self.info['Index'] += 1
 
@@ -161,8 +183,8 @@ class PlayStrm(object):
                     enabled = False
                     LOG.info("Skip trailers.")
 
-            elif int(self.info['KodiPlaylist'].getposition()) > 0 and self.info['Item']['Type'] == 'Episode':
-                enabled = False
+            #elif int(self.info['KodiPlaylist'].getposition()) > 0 and self.info['Item']['Type'] == 'Episode':
+            #    enabled = False
 
             if enabled:
                 for intro in self.info['Intros']['Items']:
