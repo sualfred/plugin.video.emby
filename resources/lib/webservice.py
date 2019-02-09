@@ -169,7 +169,7 @@ class requestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.wfile.write(loading)
 
             if params['Id'] not in self.server.pending:
-                xbmc.log("[ webservice ] path: %s params: %s" % (str(self.path), str(params)), xbmc.LOGWARNING)
+                xbmc.log("[ webservice/%s ] path: %s params: %s" % (str(id(self)), str(self.path), str(params)), xbmc.LOGWARNING)
                 
                 play = playstrm.PlayStrm(params, params.get('ServerId'))
                 self.server.pending.append(params['Id'])
@@ -184,12 +184,20 @@ class requestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         except IndexError as error:
 
             xbmc.log(str(error), xbmc.LOGWARNING)
-            self.send_error(404)
+            try:
+                self.send_error(404)
+            except Exception:
+                pass
 
         except Exception as error:
 
             xbmc.log(str(error), xbmc.LOGWARNING)
-            self.send_error(500, "Exception occurred: %s" % error)
+            try:
+                self.send_error(500, "Exception occurred: %s" % error)
+            except Exception:
+                pass
+
+        xbmc.log("<[ webservice/%s ]" % str(id(self)), xbmc.LOGWARNING)
 
         return
 
@@ -201,12 +209,15 @@ class QueuePlay(threading.Thread):
         threading.Thread.__init__(self)
 
     def run(self):
-        #xbmc.sleep(200)
+        
+        ''' Allow Kodi to catch up.
+        '''
+        LOG.info("-->[ queue play ]")
 
         while True:
 
             try:
-                playstrm, params, path = self.server.queue.get(timeout=3)
+                playstrm, params, path = self.server.queue.get(timeout=1)
             except Queue.Empty:
 
                 self.server.threads.remove(self)
@@ -233,3 +244,5 @@ class QueuePlay(threading.Thread):
 
             playstrm.remove_from_playlist_by_path(path)
             self.server.queue.task_done()
+
+        LOG.info("--<[ queue play ]")
