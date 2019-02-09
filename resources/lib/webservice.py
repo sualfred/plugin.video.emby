@@ -161,17 +161,10 @@ class requestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 self.server.threads.append(queue)
 
         except IndexError as error:
-
-            #xbmc.log(str(error), xbmc.LOGWARNING)
             self.send_error(404)
 
         except Exception as error:
-
-            #xbmc.log(str(error), xbmc.LOGWARNING)
-            try:
-                self.send_error(500, "Exception occurred: %s" % error)
-            except Exception as error:
-                pass
+            self.send_error(500, "Exception occurred: %s" % error)
 
         return
 
@@ -186,6 +179,7 @@ class QueuePlay(threading.Thread):
 
         current_position = max(xbmc.PlayList(xbmc.PLAYLIST_VIDEO).getposition(), 0)
         LOG.info("[ current position/%s ]", current_position)
+
         while True:
 
             try:
@@ -216,6 +210,7 @@ class QueuePlay(threading.Thread):
                     while item_id in self.server.pending:
                         self.server.pending.remove(item_id)
             except Exception as error:
+                
                 LOG.error(error)
                 xbmc.Player().stop()
 

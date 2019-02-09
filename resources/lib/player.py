@@ -73,6 +73,7 @@ class Player(xbmc.Player):
             
             LOG.info("emby-loading.mp4 detected.")
             self.pause()
+            xbmc.PlayList(xbmc.PLAYLIST_VIDEO).remove(xbmc.getInfoLabel('Player.Filenameandpath')) #TODO detect the right playlist
 
             return
 
