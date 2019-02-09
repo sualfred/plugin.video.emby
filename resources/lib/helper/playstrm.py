@@ -86,11 +86,11 @@ class PlayStrm(object):
             window('emby_playinit', "widget")
             self.actions.get_playlist(self.info['Item']).clear()
 
-        self.info['StartIndex'] = max(self.info['KodiPlaylist'].getposition(), 0)
+        self.info['StartIndex'] = max(self.info['KodiPlaylist'].getposition(), 0) + int(play_folder)
         self.info['Index'] = self.info['StartIndex']
+        LOG.info("[ index/%s ]", self.info['Index'])
 
         listitem = xbmcgui.ListItem()
-        LOG.info("[ index/%s ]", self.info['Index'])
         self._set_playlist(listitem)
 
         xbmc.Player().play(self.info['KodiPlaylist'], startpos=self.info['StartIndex'])
