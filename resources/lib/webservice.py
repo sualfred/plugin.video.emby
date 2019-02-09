@@ -173,7 +173,7 @@ class requestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.wfile.write(loading)
 
             self.server.pending.append(params['Id'])
-            self.server.queue.put((play, params, ''.join(["http://127.0.0.1:57578", self.path]),))
+            self.server.queue.put((play, params, ''.join(["http://127.0.0.1", ":", str(PORT), self.path]),))
             
             if len(self.server.threads) < 1:
 
@@ -199,7 +199,6 @@ class QueuePlay(threading.Thread):
     def run(self):
 
         current_position = max(xbmc.PlayList(xbmc.PLAYLIST_VIDEO).getposition(), 0)
-        LOG.info("[ current position/%s ]", current_position)
 
         while True:
 
@@ -215,27 +214,33 @@ class QueuePlay(threading.Thread):
             item_id = params['Id']
 
             if item_id not in self.server.pending:
+
+                ''' Accomodate for triple triggering of widget playback.
+                '''
                 LOG.info("item %s is no longer pending.", item_id)
                 self.server.queue.task_done()
 
                 continue
 
-            LOG.info("[ queue play/%s ]", item_id)
+            LOG.info("[ queue play/%s/%s ]", item_id, current_position)
+            check_widget = False
 
             try:
                 if self.server.pending.count(item_id) != len(self.server.pending):
                     current_position = playstrm.play_folder(current_position)
                 else:
+                    check_widget = True
                     current_position = playstrm.play(params.get('mode') == 'playfolder')
-
-                    while item_id in self.server.pending:
-                        self.server.pending.remove(item_id)
             except Exception as error:
-                
+
                 LOG.error(error)
                 xbmc.Player().stop()
 
-            LOG.info("hello world")
-            LOG.info(path)
+
+            if check_widget:
+
+                while item_id in self.server.pending:
+                    self.server.pending.remove(item_id)
+
             playstrm.remove_from_playlist_by_path(path)
             self.server.queue.task_done()
