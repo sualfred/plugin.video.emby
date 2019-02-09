@@ -77,7 +77,6 @@ class Player(xbmc.Player):
             self.pause()
 
             xbmc.PlayList(xbmc.PLAYLIST_VIDEO).remove(xbmc.getInfoLabel('Player.Filenameandpath')) #TODO detect the right playlist
-            xbmc.PlayList(xbmc.PLAYLIST_VIDEO).remove(xbmc.getInfoLabel('ListItem.Filenameandpath'))
 
             return
 

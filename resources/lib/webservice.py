@@ -97,8 +97,7 @@ class requestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         try:
             BaseHTTPServer.BaseHTTPRequestHandler.handle(self)
         except Exception as error:
-            raise
-            #xbmc.log(str(error), xbmc.LOGWARNING)
+            pass#xbmc.log(str(error), xbmc.LOGWARNING)
 
     def finish(self):
 
@@ -174,7 +173,7 @@ class requestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.wfile.write(loading)
 
             self.server.pending.append(params['Id'])
-            self.server.queue.put((play, params,))
+            self.server.queue.put((play, params, ''.join(["http://127.0.0.1:57578", self.path]),))
             
             if len(self.server.threads) < 1:
 
@@ -205,7 +204,7 @@ class QueuePlay(threading.Thread):
         while True:
 
             try:
-                playstrm, params = self.server.queue.get(timeout=1)
+                playstrm, params, path = self.server.queue.get(timeout=1)
             except Queue.Empty:
 
                 self.server.threads.remove(self)
@@ -236,4 +235,7 @@ class QueuePlay(threading.Thread):
                 LOG.error(error)
                 xbmc.Player().stop()
 
+            LOG.info("hello world")
+            LOG.info(path)
+            playstrm.remove_from_playlist_by_path(path)
             self.server.queue.task_done()
