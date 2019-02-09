@@ -14,6 +14,7 @@ import Queue
 import xbmc
 import xbmcaddon
 import xbmcgui
+import xbmcvfs
 
 from helper import settings, playstrm
 
@@ -68,6 +69,7 @@ class HttpServer(BaseHTTPServer.HTTPServer):
 
         ''' Handle one request at a time until stopped.
         '''
+
         self.stop = False
         self.play = False
         self.pending = []
@@ -99,21 +101,6 @@ class requestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         except Exception as error:
             pass#xbmc.log(str(error), xbmc.LOGWARNING)
 
-    def finish(self):
-
-        ''' To quiet socket errors with 404.
-        '''
-        try:
-            if not self.wfile.closed:
-                self.wfile.flush()
-
-            self.wfile.close()
-            self.rfile.close()
-        except socket.error:
-            # A final socket error may have occurred here, such as
-            # the local error ECONNABORTED.
-            pass
-
     def do_QUIT(self):
 
         ''' send 200 OK response, and set server.stop to True
@@ -142,62 +129,81 @@ class requestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         ''' Called on HEAD requests
         '''
-        self.send_response(200)
-        self.end_headers()
+        self.handle_request(True)
 
         return
 
     def do_GET(self):
 
-        ''' Return plugin path
+        ''' Called on GET requests
+        '''
+        self.handle_request()
+
+        return
+
+    def handle_request(self,headers_only=False):
+
+        '''Send headers and reponse
         '''
         try:
-            params = self.get_params()
 
-            if (not params or params.get('Id') is None or (not params['Id'].isdigit() and (not params['Id'].isalnum() and not len(params['Id']) == 12))):
-                raise IndexError("Incomplete URL format")
+            if headers_only:
 
-            if any(string in self.path for string in ('.png', '.jpg', 'extrathumbs', 'extrafanart')):
-                raise IndexError("Incorrect Id format %s" % params['Id'])
+                self.send_response(200)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
 
-            self.send_response(200)
-            self.send_header('Content-type','text/html')
-            self.end_headers()
+            elif not 'file.strm' in self.path:
 
-            loading_videos = ['default', 'black']
-            loading = xbmc.translatePath(os.path.join(ADDON.getAddonInfo('path'), 'resources', 'skins', 'default', 'media', 'videos', loading_videos[int(settings('loadingVideo') or 0)], 'emby-loading.mp4')).decode('utf-8')
-            self.wfile.write(loading)
+                ''' Return a dummy image for unwanted images requests over the webservice.
+                    Required to prevent freezing of widget playback if the file url has no
+                    local textures cached yet.
+                '''
+                image = xbmc.translatePath(os.path.join(ADDON.getAddonInfo('path'), 'fanart.jpg')).decode('utf-8')
 
-            if params['Id'] not in self.server.pending:
-                xbmc.log("[ webservice/%s ] path: %s params: %s" % (str(id(self)), str(self.path), str(params)), xbmc.LOGWARNING)
-                
-                play = playstrm.PlayStrm(params, params.get('ServerId'))
-                self.server.pending.append(params['Id'])
-                self.server.queue.put((play, params, ''.join(["http://127.0.0.1", ":", str(PORT), self.path.encode('utf-8')]),))
+                self.send_response(200)
+                self.send_header('Content-type', 'image/jpg')
+                modified = xbmcvfs.Stat(image).st_mtime()
+                self.send_header('Last-Modified', "%s" % modified)
+                image = xbmcvfs.File(image)
+                size = image.size()
+                self.send_header('Content-Length', str(size))
+                self.end_headers()
 
-                if len(self.server.threads) < 1:
+                self.wfile.write(image.readBytes())
+                image.close()
 
-                    queue = QueuePlay(self.server)
-                    queue.start()
-                    self.server.threads.append(queue)
+            else:
 
-        except IndexError as error:
+                ''' Return a dummy video and and queue real items.
+                '''
+                self.send_response(200)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
 
-            xbmc.log(str(error), xbmc.LOGWARNING)
-            try:
-                self.send_error(404)
-            except Exception:
-                pass
+                params = self.get_params()
+                loading_videos = ['default', 'black']
+                loading = xbmc.translatePath(os.path.join(ADDON.getAddonInfo('path'), 'resources', 'skins', 'default', 'media', 'videos', loading_videos[int(settings('loadingVideo') or 0)], 'emby-loading.mp4')).decode('utf-8')
+                self.wfile.write(loading)
 
-        except Exception as error:
+                if params['Id'] not in self.server.pending:
+                    xbmc.log("[ webservice/%s ] path: %s params: %s" % (str(id(self)), str(self.path), str(params)), xbmc.LOGWARNING)
 
-            xbmc.log(str(error), xbmc.LOGWARNING)
-            try:
-                self.send_error(500, "Exception occurred: %s" % error)
-            except Exception:
-                pass
+                    play = playstrm.PlayStrm(params, params.get('ServerId'))
+                    self.server.pending.append(params['Id'])
+                    self.server.queue.put((play, params, ''.join(["http://127.0.0.1", ":", str(PORT), self.path.encode('utf-8')]),))
 
-        xbmc.log("<[ webservice/%s ]" % str(id(self)), xbmc.LOGWARNING)
+                    if len(self.server.threads) < 1:
+
+                        queue = QueuePlay(self.server)
+                        queue.start()
+                        self.server.threads.append(queue)
+
+                xbmc.log("<[ webservice/%s ]" % str(id(self)), xbmc.LOGWARNING)
+
+        except Exception as exc:
+
+            self.send_error(500, '[ webservice/ ] Exception occurred: %s' % exc)
 
         return
 
@@ -209,7 +215,7 @@ class QueuePlay(threading.Thread):
         threading.Thread.__init__(self)
 
     def run(self):
-        
+
         ''' Allow Kodi to catch up.
         '''
         LOG.info("-->[ queue play ]")
@@ -227,13 +233,31 @@ class QueuePlay(threading.Thread):
 
             item_id = params['Id']
             current_position = max(xbmc.PlayList(xbmc.PLAYLIST_VIDEO).getposition(), 0)
+
             LOG.info("[ queue play/%s/%s ]", item_id, current_position)
 
             try:
+
                 if self.server.pending.count(item_id) != len(self.server.pending):
+
                     current_position = playstrm.play_folder(current_position)
                 else:
+
+                    ''' Required delay for widgets, custom skin containers and non library windows.
+                        Otherwise Kodi will freeze if no artwork textures are cached yet in Textures13.db
+                        Will be skipped if the player already has media and is playing.
+
+                        Important: Never move this check to start play_folder() to prevent race conditions!
+                    '''
+                    current_window = xbmcgui.getCurrentWindowId()
+
+                    if not current_window == 12005:
+
+                        LOG.info("[ queue play/current window: %s ] Force delay" % current_window)
+                        xbmc.sleep(500)
+
                     current_position = playstrm.play(params.get('mode') == 'playfolder')
+
             except Exception as error:
 
                 LOG.error(error)
