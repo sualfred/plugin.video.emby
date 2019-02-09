@@ -89,10 +89,11 @@ class PlayStrm(object):
         self.info['StartIndex'] = max(self.info['KodiPlaylist'].getposition(), 0) + int(play_folder)
         self.info['Index'] = self.info['StartIndex']
         LOG.info("[ index/%s ]", self.info['Index'])
-
+        #xbmc.sleep(50)
         listitem = xbmcgui.ListItem()
         self._set_playlist(listitem)
-
+        #xbmc.sleep(50)
+        LOG.info("hello world2")
         xbmc.Player().play(self.info['KodiPlaylist'], startpos=self.info['StartIndex'])
 
         return self.info['Index']

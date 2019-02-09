@@ -10,6 +10,7 @@ import urlparse
 import os
 import socket
 import Queue
+from SocketServer import ThreadingMixIn
 
 import xbmc
 import xbmcaddon
@@ -60,7 +61,7 @@ class WebService(threading.Thread):
         LOG.info("---<[ webservice ]")
 
 
-class HttpServer(BaseHTTPServer.HTTPServer):
+class HttpServer(ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
     ''' Http server that reacts to self.stop flag.
     '''
@@ -153,10 +154,8 @@ class requestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         '''
         try:
             params = self.get_params()
-            xbmc.log("[ webservice ] path: %s params: %s" % (str(self.path), str(params)), xbmc.LOGWARNING)
 
             if (not params or params.get('Id') is None or (not params['Id'].isdigit() and (not params['Id'].isalnum() and not len(params['Id']) == 12))):
-
                 raise IndexError("Incomplete URL format")
 
             if any(string in self.path for string in ('.png', '.jpg', 'extrathumbs', 'extrafanart')):
@@ -167,24 +166,30 @@ class requestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.end_headers()
 
             loading_videos = ['default', 'black']
-
-            play = playstrm.PlayStrm(params, params.get('ServerId'))
             loading = xbmc.translatePath(os.path.join(ADDON.getAddonInfo('path'), 'resources', 'skins', 'default', 'media', 'videos', loading_videos[int(settings('loadingVideo') or 0)], 'emby-loading.mp4')).decode('utf-8')
             self.wfile.write(loading)
 
-            self.server.pending.append(params['Id'])
-            self.server.queue.put((play, params, ''.join(["http://127.0.0.1", ":", str(PORT), self.path]),))
-            
-            if len(self.server.threads) < 1:
+            if params['Id'] not in self.server.pending:
+                xbmc.log("[ webservice ] path: %s params: %s" % (str(self.path), str(params)), xbmc.LOGWARNING)
+                
+                play = playstrm.PlayStrm(params, params.get('ServerId'))
+                self.server.pending.append(params['Id'])
+                self.server.queue.put((play, params, ''.join(["http://127.0.0.1", ":", str(PORT), self.path.encode('utf-8')]),))
 
-                queue = QueuePlay(self.server)
-                queue.start()
-                self.server.threads.append(queue)
+                if len(self.server.threads) < 1:
+
+                    queue = QueuePlay(self.server)
+                    queue.start()
+                    self.server.threads.append(queue)
 
         except IndexError as error:
+
+            xbmc.log(str(error), xbmc.LOGWARNING)
             self.send_error(404)
 
         except Exception as error:
+
+            xbmc.log(str(error), xbmc.LOGWARNING)
             self.send_error(500, "Exception occurred: %s" % error)
 
         return
@@ -197,13 +202,12 @@ class QueuePlay(threading.Thread):
         threading.Thread.__init__(self)
 
     def run(self):
-
-        current_position = max(xbmc.PlayList(xbmc.PLAYLIST_VIDEO).getposition(), 0)
+        #xbmc.sleep(200)
 
         while True:
 
             try:
-                playstrm, params, path = self.server.queue.get(timeout=1)
+                playstrm, params, path = self.server.queue.get(timeout=3)
             except Queue.Empty:
 
                 self.server.threads.remove(self)
@@ -212,16 +216,7 @@ class QueuePlay(threading.Thread):
                 break
 
             item_id = params['Id']
-
-            if item_id not in self.server.pending:
-
-                ''' Accomodate for triple triggering of widget playback.
-                '''
-                LOG.info("item %s is no longer pending.", item_id)
-                self.server.queue.task_done()
-
-                continue
-
+            current_position = max(xbmc.PlayList(xbmc.PLAYLIST_VIDEO).getposition(), 0)
             LOG.info("[ queue play/%s/%s ]", item_id, current_position)
 
             try:
@@ -229,9 +224,6 @@ class QueuePlay(threading.Thread):
                     current_position = playstrm.play_folder(current_position)
                 else:
                     current_position = playstrm.play(params.get('mode') == 'playfolder')
-
-                    while item_id in self.server.pending:
-                        self.server.pending.remove(item_id)
             except Exception as error:
 
                 LOG.error(error)
