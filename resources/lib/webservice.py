@@ -236,7 +236,7 @@ class QueuePlay(threading.Thread):
 
                 LOG.error(error)
                 xbmc.Player().stop()
-                self.server.queue.clear()
+                self.server.queue.queue.clear()
 
                 continue
 
