@@ -223,24 +223,22 @@ class QueuePlay(threading.Thread):
                 continue
 
             LOG.info("[ queue play/%s/%s ]", item_id, current_position)
-            check_widget = False
 
             try:
                 if self.server.pending.count(item_id) != len(self.server.pending):
                     current_position = playstrm.play_folder(current_position)
                 else:
-                    check_widget = True
                     current_position = playstrm.play(params.get('mode') == 'playfolder')
+
+                    while item_id in self.server.pending:
+                        self.server.pending.remove(item_id)
             except Exception as error:
 
                 LOG.error(error)
                 xbmc.Player().stop()
+                self.server.queue.clear()
 
-
-            if check_widget:
-
-                while item_id in self.server.pending:
-                    self.server.pending.remove(item_id)
+                continue
 
             playstrm.remove_from_playlist_by_path(path)
             self.server.queue.task_done()
