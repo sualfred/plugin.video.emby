@@ -10,7 +10,6 @@ import urlparse
 import os
 import socket
 import Queue
-from SocketServer import ThreadingMixIn
 
 import xbmc
 import xbmcaddon
@@ -61,7 +60,7 @@ class WebService(threading.Thread):
         LOG.info("---<[ webservice ]")
 
 
-class HttpServer(ThreadingMixIn, BaseHTTPServer.HTTPServer):
+class HttpServer(BaseHTTPServer.HTTPServer):
 
     ''' Http server that reacts to self.stop flag.
     '''
