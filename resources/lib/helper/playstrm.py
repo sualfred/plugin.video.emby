@@ -29,7 +29,6 @@ class PlayStrm(object):
             the webserivce returns a dummy file to play. Meanwhile,
             PlayStrm adds the real listitems for items to play to the playlist.
         '''
-        LOG.info(">[ play strm ]")
         self.info = {
             'Intros': None,
             'Item': None,
@@ -45,7 +44,7 @@ class PlayStrm(object):
         self.set_listitem = self.actions.set_listitem
         self.params = params
         self._detect_play()
-        LOG.info("<[ play strm ]")
+        LOG.info("[ play strm ]")
 
     def remove_from_playlist(self, index, playlist_id=None):
 

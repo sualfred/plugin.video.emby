@@ -8,6 +8,7 @@ import httplib
 import threading
 import urlparse
 import os
+import socket
 import Queue
 
 import xbmc
@@ -77,7 +78,6 @@ class HttpServer(BaseHTTPServer.HTTPServer):
             self.handle_request()
 
 
-
 class requestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     ''' Http request handler. Do not use LOG here,
@@ -90,9 +90,30 @@ class requestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         '''
         pass
 
-    def log_error(self, *args, **kwargs):
+    def handle(self):
 
-        pass
+        ''' To quiet socket errors with 404.
+        '''
+        try:
+            BaseHTTPServer.BaseHTTPRequestHandler.handle(self)
+        except Exception as error:
+            raise
+            #xbmc.log(str(error), xbmc.LOGWARNING)
+
+    def finish(self):
+
+        ''' To quiet socket errors with 404.
+        '''
+        try:
+            if not self.wfile.closed:
+                self.wfile.flush()
+
+            self.wfile.close()
+            self.rfile.close()
+        except socket.error:
+            # A final socket error may have occurred here, such as
+            # the local error ECONNABORTED.
+            pass
 
     def do_QUIT(self):
 
@@ -135,10 +156,11 @@ class requestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             params = self.get_params()
             xbmc.log("[ webservice ] path: %s params: %s" % (str(self.path), str(params)), xbmc.LOGWARNING)
 
-            if not params or params.get('Id') is None or 'file.strm' not in self.path:
+            if (not params or params.get('Id') is None or (not params['Id'].isdigit() and (params['Id'].isalnum() and not len(params['Id']) == 12))):
+
                 raise IndexError("Incomplete URL format")
 
-            if 'extrafanart' in params['Id']:
+            if any(string in self.path for string in ('.png', '.jpg', 'extrathumbs', 'extrafanart')):
                 raise IndexError("Incorrect Id format %s" % params['Id'])
 
             self.send_response(200)
