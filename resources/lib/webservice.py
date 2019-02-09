@@ -155,7 +155,7 @@ class requestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             params = self.get_params()
             xbmc.log("[ webservice ] path: %s params: %s" % (str(self.path), str(params)), xbmc.LOGWARNING)
 
-            if (not params or params.get('Id') is None or (not params['Id'].isdigit() and (params['Id'].isalnum() and not len(params['Id']) == 12))):
+            if (not params or params.get('Id') is None or (not params['Id'].isdigit() and (not params['Id'].isalnum() and not len(params['Id']) == 12))):
 
                 raise IndexError("Incomplete URL format")
 
