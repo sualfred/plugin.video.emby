@@ -71,9 +71,13 @@ class Player(xbmc.Player):
 
         if current_file.endswith('emby-loading.mp4'):
             
+            ''' Clear the virtual and strm link path from the playlist.
+            '''
             LOG.info("emby-loading.mp4 detected.")
             self.pause()
+
             xbmc.PlayList(xbmc.PLAYLIST_VIDEO).remove(xbmc.getInfoLabel('Player.Filenameandpath')) #TODO detect the right playlist
+            xbmc.PlayList(xbmc.PLAYLIST_VIDEO).remove(xbmc.getInfoLabel('ListItem.Filenameandpath'))
 
             return
 
