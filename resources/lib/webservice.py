@@ -250,7 +250,7 @@ class QueuePlay(threading.Thread):
             LOG.info("[ queue play/%s/%s ]", item_id, current_position)
 
             try:
-                if self.server.pending.count(item_id) != len(self.server.pending):
+                if self.server.pending.count(item_id) != len(self.server.pending) and len(self.server.pending) > 1:
                     current_position = play.play_folder(current_position)
                 else:
                     current_window = xbmcgui.getCurrentWindowId()
@@ -261,6 +261,7 @@ class QueuePlay(threading.Thread):
                         xbmc.sleep(500)
 
                     current_position = play.play(params.get('mode') == 'playfolder')
+                    self.server.pending.pop()
 
             except Exception as error:
 
