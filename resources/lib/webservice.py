@@ -145,7 +145,7 @@ class requestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         '''Send headers and reponse
         '''
         try:
-            xbmc.log(str(self.path), xbmc.LOGWARNING)
+            #xbmc.log(str(self.path), xbmc.LOGWARNING)
 
             if 'extrafanart' in self.path or 'extrathumbs' in self.path:
                 raise Exception("unsupported artwork request")
@@ -159,9 +159,6 @@ class requestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             elif 'file.strm' not in self.path:
                 self.images()
             else:
-                self.send_response(200)
-                self.send_header('Content-type', 'text/html')
-                self.end_headers()
                 self.strm()
 
         except Exception as error:
@@ -175,6 +172,10 @@ class requestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         ''' Return a dummy video and and queue real items.
         '''
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+
         params = self.get_params()
         loading_videos = ['default', 'black']
         loading = xbmc.translatePath("special://home/addons/plugin.video.emby/resources/skins/default/media/videos/%s/emby-loading.mp4" % loading_videos[int(settings('loadingVideo') or 0)]).decode('utf-8')
