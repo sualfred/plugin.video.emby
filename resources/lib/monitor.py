@@ -457,12 +457,9 @@ class Monitor(xbmc.Monitor):
         ''' Widgets do not truly clear the playlist.
         '''
         if xbmc.PlayList(xbmc.PLAYLIST_VIDEO).size():
-            window('emby_playlistclear', clear=True)
+            window('emby_playlistclear.bool', True)
 
             return
-
-        LOG.info("[ playlist cleared ]")
-        window('emby_playlistclear.bool', True)
 
     def VideoLibrary_OnUpdate(self, server, data, *args, **kwargs):
         on_update(data, server)

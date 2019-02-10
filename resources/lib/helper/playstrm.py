@@ -80,10 +80,11 @@ class PlayStrm(object):
         ''' Create and add listitems to the Kodi playlist.
         '''
         if not play_folder:
-            if not window('emby_playlistclear.bool'):
+            if window('emby_playlistclear.bool'):
                 
                 LOG.info("[ play clearing playlist ]")
                 self.actions.get_playlist(self.info['Item']).clear()
+                window('emby_playlistclear.bool', clear=True)
 
         self.info['StartIndex'] = max(self.info['KodiPlaylist'].getposition(), 0) + int(play_folder)
         self.info['Index'] = self.info['StartIndex']

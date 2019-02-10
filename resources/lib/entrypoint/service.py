@@ -79,7 +79,6 @@ class Service(xbmc.Monitor):
             LOG.error(error)
 
         window('emby.connected.bool', True)
-        window('emby_playlistclear.bool', True)
         self.check_update()
         settings('groupedSets.bool', objects.utils.get_grouped_set())
         xbmc.Monitor.__init__(self)
