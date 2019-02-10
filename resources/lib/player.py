@@ -77,6 +77,7 @@ class Player(xbmc.Player):
             self.pause()
 
             xbmc.PlayList(xbmc.PLAYLIST_VIDEO).remove(xbmc.getInfoLabel('Player.Filenameandpath')) #TODO detect the right playlist
+            window('emby_loadingvideo.bool', True)
 
             return
 

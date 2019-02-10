@@ -16,7 +16,7 @@ import xbmcaddon
 import xbmcgui
 import xbmcvfs
 
-from helper import settings, playstrm
+from helper import settings, window, playstrm
 
 #################################################################################################
 
@@ -178,7 +178,8 @@ class requestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         params = self.get_params()
         loading_videos = ['default', 'black']
-        loading = xbmc.translatePath("special://home/addons/plugin.video.emby/resources/skins/default/media/videos/%s/emby-loading.mp4" % loading_videos[int(settings('loadingVideo') or 0)]).decode('utf-8')
+        loading = xbmc.translatePath(os.path.join(ADDON.getAddonInfo('path'), 'resources', 'skins', 'default', 'media', 'videos', loading_videos[int(settings('loadingVideo') or 0)], 'emby-loading.mp4')).decode('utf-8')
+        #xbmc.translatePath("special://home/addons/plugin.video.emby/resources/skins/default/media/videos/%s/emby-loading.mp4" % loading_videos[int(settings('loadingVideo') or 0)]).decode('utf-8')
         self.wfile.write(loading)
 
         if params['Id'] not in self.server.pending:
@@ -199,7 +200,8 @@ class requestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             Required to prevent freezing of widget playback if the file url has no
             local textures cached yet.
         '''
-        image = xbmc.translatePath("special://home/addons/plugin.video.emby/icon.png").decode('utf-8')
+        image = xbmc.translatePath(os.path.join(ADDON.getAddonInfo('path'), 'icon.png')).decode('utf-8')
+        #xbmc.translatePath("special://home/addons/plugin.video.emby/icon.png").decode('utf-8')
 
         self.send_response(200)
         self.send_header('Content-type', 'image/png')
@@ -232,6 +234,16 @@ class QueuePlay(threading.Thread):
             Important: Never move the check to start play_folder() to prevent race conditions!
         '''
         LOG.info("-->[ queue play ]")
+        count = 0
+
+        while count < 10:
+            if window('emby_loadingvideo.bool'):
+                window('emby_loadingvideo', clear=True)
+                LOG.info("prop found!!")
+                break
+
+            count += 1
+            xbmc.sleep(50)
 
         while True:
 
@@ -253,12 +265,14 @@ class QueuePlay(threading.Thread):
                 if self.server.pending.count(item_id) != len(self.server.pending) and len(self.server.pending) > 1:
                     current_position = play.play_folder(current_position)
                 else:
+                    """
                     current_window = xbmcgui.getCurrentWindowId()
 
                     if not current_window == 12005:
 
                         LOG.info("[ queue play/delay/%s ]", current_window)
                         xbmc.sleep(500)
+                    """
 
                     current_position = play.play(params.get('mode') == 'playfolder')
                     self.server.pending.pop()
