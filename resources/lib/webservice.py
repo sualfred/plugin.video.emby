@@ -234,13 +234,23 @@ class QueuePlay(threading.Thread):
             Important: Never move the check to start play_folder() to prevent race conditions!
         '''
         LOG.info("-->[ queue play ]")
+        current_position = max(xbmc.PlayList(xbmc.PLAYLIST_VIDEO).getposition(), 0)
         count = 0
+        play_folder = False
+        play = None
+
+        xbmc.sleep(150) # Let Kodi catch up.
 
         while True:
 
             try:
                 params, path = self.server.queue.get(timeout=1)
             except Queue.Empty:
+
+                if play_folder:
+
+                    xbmc.executebuiltin('Dialog.Close(busydialognocancel)')
+                    play.start_playback()
 
                 self.server.threads.remove(self)
                 self.server.pending = []
@@ -249,11 +259,10 @@ class QueuePlay(threading.Thread):
 
             play = playstrm.PlayStrm(params, params.get('ServerId'))
             item_id = params['Id']
-            current_position = max(xbmc.PlayList(xbmc.PLAYLIST_VIDEO).getposition(), 0)
             LOG.info("[ queue play/%s/%s ]", item_id, current_position)
 
             try:
-                if self.server.pending.count(item_id) != len(self.server.pending):
+                if self.server.pending.count(item_id) != len(self.server.pending) and current_position > 0:
                     current_position = play.play_folder(current_position)
                 else:
                     while not window('emby_loadingvideo.bool'):
@@ -265,6 +274,10 @@ class QueuePlay(threading.Thread):
                         xbmc.sleep(50)
 
                         if self.server.pending.count(item_id) != len(self.server.pending):
+                            
+                            play_folder = True
+                            xbmc.executebuiltin('ActivateWindow(busydialognocancel)')
+
                             break
 
                     window('emby_loadingvideo', clear=True)
@@ -275,12 +288,13 @@ class QueuePlay(threading.Thread):
                         LOG.info("[ queue play/delay/%s ]", current_window)
                         xbmc.sleep(500)
 
-                    current_position = play.play(params.get('mode') == 'playfolder')
+                    current_position = play.play(params.get('mode') == 'playfolder', play_folder)
 
             except Exception as error:
 
                 LOG.error(error)
                 xbmc.Player().stop()
+                play_folder = False
                 self.server.queue.queue.clear()
 
                 continue

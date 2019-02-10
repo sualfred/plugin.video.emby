@@ -75,7 +75,10 @@ class PlayStrm(object):
             self._get_item()
             self._get_additional_parts()
 
-    def play(self, play_folder=False):
+    def start_playback(self, index=0):
+        xbmc.Player().play(self.info['KodiPlaylist'], startpos=index, windowed=False)
+
+    def play(self, play_folder=False, delayed=False):
 
         ''' Create and add listitems to the Kodi playlist.
         '''
@@ -86,14 +89,15 @@ class PlayStrm(object):
                 self.actions.get_playlist(self.info['Item']).clear()
                 window('emby_playlistclear.bool', clear=True)
 
-        self.info['StartIndex'] = max(self.info['KodiPlaylist'].getposition(), 0) + int(play_folder)
+        self.info['StartIndex'] = max(self.info['KodiPlaylist'].getposition(), 0)
         self.info['Index'] = self.info['StartIndex']
         LOG.info("[ play/%s/%s/%s ]", self.info['Id'], self.info['Index'], int(play_folder))
 
         listitem = xbmcgui.ListItem()
         self._set_playlist(listitem)
 
-        xbmc.Player().play(self.info['KodiPlaylist'], startpos=self.info['StartIndex'])
+        if not delayed:
+            self.start_playback(self.info['StartIndex'])
 
         return self.info['Index']
 
