@@ -34,7 +34,7 @@ class PlayStrm(object):
             'Item': None,
             'Id': params.get('Id'),
             'DbId': params.get('KodiId'),
-            'Transcode': params.get('Transcode') or settings('playFromTranscode.bool') or None,
+            'Transcode': params.get('Transcode') or settings('playFromTranscode.bool') if settings('playFromStream.bool') else None,
             'AdditionalParts': None,
             'ServerId': server_id,
             'KodiPlaylist': xbmc.PlayList(xbmc.PLAYLIST_VIDEO),
