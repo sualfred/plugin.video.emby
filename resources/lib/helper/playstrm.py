@@ -88,6 +88,7 @@ class PlayStrm(object):
 
         self.info['StartIndex'] = max(self.info['KodiPlaylist'].getposition(), 0) + int(play_folder)
         self.info['Index'] = self.info['StartIndex']
+
         LOG.info("[ play/%s/%s/%s ]", self.info['Id'], self.info['Index'], int(play_folder))
 
         listitem = xbmcgui.ListItem()
@@ -148,6 +149,7 @@ class PlayStrm(object):
         if settings('enableCinema.bool') and not seektime:
             self._set_intros()
 
+        LOG.info("[ main/%s/%s ] %s", self.info['Item']['Id'], self.info['Index'], self.info['Item']['Name'])
         play = playutils.PlayUtilsStrm(self.info['Item'], self.info['Transcode'], self.info['ServerId'], self.info['Server'])
         source = play.select_source(play.get_sources())
 
@@ -184,7 +186,7 @@ class PlayStrm(object):
                 for intro in self.info['Intros']['Items']:
 
                     listitem = xbmcgui.ListItem()
-                    LOG.info("[ intro/%s ] %s", intro['Id'], intro['Name'])
+                    LOG.info("[ intro/%s/%s ] %s", intro['Id'], self.info['Index'], intro['Name'])
 
                     play = playutils.PlayUtilsStrm(intro, False, self.info['ServerId'], self.info['Server'])
                     source = play.select_source(play.get_sources())
@@ -204,7 +206,7 @@ class PlayStrm(object):
         for part in self.info['AdditionalParts']['Items']:
 
             listitem = xbmcgui.ListItem()
-            LOG.info("[ part/%s ] %s", part['Id'], part['Name'])
+            LOG.info("[ part/%s/%s ] %s", part['Id'], self.info['Index'], part['Name'])
 
             play = playutils.PlayUtilsStrm(part, self.info['Transcode'], self.info['ServerId'], self.info['Server'])
             source = play.select_source(play.get_sources())
