@@ -264,6 +264,9 @@ class QueuePlay(threading.Thread):
                         count += 1
                         xbmc.sleep(50)
 
+                        if self.server.pending.count(item_id) != len(self.server.pending):
+                            break
+
                     window('emby_loadingvideo', clear=True)
                     current_window = xbmcgui.getCurrentWindowId()
 
