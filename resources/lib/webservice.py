@@ -236,15 +236,6 @@ class QueuePlay(threading.Thread):
         LOG.info("-->[ queue play ]")
         count = 0
 
-        while count < 10:
-            if window('emby_loadingvideo.bool'):
-                window('emby_loadingvideo', clear=True)
-                LOG.info("prop found!!")
-                break
-
-            count += 1
-            xbmc.sleep(50)
-
         while True:
 
             try:
@@ -262,20 +253,26 @@ class QueuePlay(threading.Thread):
             LOG.info("[ queue play/%s/%s ]", item_id, current_position)
 
             try:
-                if self.server.pending.count(item_id) != len(self.server.pending) and len(self.server.pending) > 1:
+                if self.server.pending.count(item_id) != len(self.server.pending):
                     current_position = play.play_folder(current_position)
                 else:
-                    """
+                    while not window('emby_loadingvideo.bool'):
+
+                        if count > 20:
+                            raise Exception("Failed to start queue play.")
+
+                        count += 1
+                        xbmc.sleep(50)
+
+                    window('emby_loadingvideo', clear=True)
                     current_window = xbmcgui.getCurrentWindowId()
 
                     if not current_window == 12005:
 
                         LOG.info("[ queue play/delay/%s ]", current_window)
                         xbmc.sleep(500)
-                    """
 
                     current_position = play.play(params.get('mode') == 'playfolder')
-                    self.server.pending.pop()
 
             except Exception as error:
 

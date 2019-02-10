@@ -86,8 +86,7 @@ class PlayStrm(object):
                 self.actions.get_playlist(self.info['Item']).clear()
                 window('emby_playlistclear.bool', clear=True)
 
-        position = max(self.info['KodiPlaylist'].getposition(), 0)
-        self.info['StartIndex'] = position + int(play_folder)
+        self.info['StartIndex'] = max(self.info['KodiPlaylist'].getposition(), 0)
         self.info['Index'] = self.info['StartIndex']
         LOG.info("[ play/%s/%s/%s ]", self.info['Id'], self.info['Index'], int(play_folder))
 
