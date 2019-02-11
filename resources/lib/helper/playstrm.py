@@ -46,13 +46,22 @@ class PlayStrm(object):
         self._detect_play()
         LOG.info("[ play strm ]")
 
-    def remove_from_playlist(self, index, playlist_id=None):
+    def remove_from_playlist(self, playlist_id=None):
 
-        playlist = playlist_id or 1
-        JSONRPC('Playlist.Remove').execute({'playlistid': playlist_id, 'position': index})
-    
+        if window('emby_loadingvideo_position'):
+
+            delete_pos = int(window('emby_loadingvideo_position'))
+            current_pos = int(xbmc.PlayList(xbmc.PLAYLIST_VIDEO).getposition())
+
+            if current_pos > delete_pos:
+                LOG.info("[ removing / cur pos ] %s", str(current_pos))
+                LOG.info("[ removing ] %s", str(delete_pos))
+                JSONRPC('Playlist.Remove').execute({'playlistid': 1, 'position': delete_pos})
+
+                window('emby_loadingvideo_position', clear=True)
+
     def remove_from_playlist_by_path(self, path):
-        
+
         LOG.info("[ removing ] %s", path)
         self.info['KodiPlaylist'].remove(path)
 
@@ -84,12 +93,14 @@ class PlayStrm(object):
         '''
         if not play_folder:
             if window('emby_playlistclear.bool'):
-                
+
                 LOG.info("[ play clearing playlist ]")
                 self.actions.get_playlist(self.info['Item']).clear()
                 window('emby_playlistclear.bool', clear=True)
 
         self.info['StartIndex'] = max(self.info['KodiPlaylist'].getposition(), 0)
+        if window('emby_loadingvideo_position'):
+            self.info['StartIndex'] = self.info['StartIndex'] + 1
         self.info['Index'] = self.info['StartIndex']
         LOG.info("[ play/%s/%s/%s ]", self.info['Id'], self.info['Index'], int(play_folder))
 
@@ -103,7 +114,7 @@ class PlayStrm(object):
 
     def play_folder(self, position=None):
 
-        ''' When an entire queue is requested, 
+        ''' When an entire queue is requested,
             queue playlist items using strm links to setup playback later.
         '''
         listitem = xbmcgui.ListItem()

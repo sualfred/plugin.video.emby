@@ -239,7 +239,7 @@ class QueuePlay(threading.Thread):
         play_folder = False
         play = None
 
-        xbmc.sleep(150) # Let Kodi catch up.
+        #xbmc.sleep(150) # Let Kodi catch up.
 
         while True:
 
@@ -254,7 +254,7 @@ class QueuePlay(threading.Thread):
 
                 self.server.threads.remove(self)
                 self.server.pending = []
-                
+
                 break
 
             play = playstrm.PlayStrm(params, params.get('ServerId'))
@@ -274,7 +274,7 @@ class QueuePlay(threading.Thread):
                         xbmc.sleep(50)
 
                         if self.server.pending.count(item_id) != len(self.server.pending):
-                            
+
                             play_folder = True
                             xbmc.executebuiltin('ActivateWindow(busydialognocancel)')
 
@@ -299,7 +299,8 @@ class QueuePlay(threading.Thread):
 
                 continue
 
-            play.remove_from_playlist_by_path(path)
+            play.remove_from_playlist()
+            #play.remove_from_playlist_by_path(path)
             self.server.queue.task_done()
 
         LOG.info("--<[ queue play ]")

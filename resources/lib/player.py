@@ -70,16 +70,18 @@ class Player(xbmc.Player):
                 return
 
         if current_file.endswith('emby-loading.mp4'):
-            
+
             ''' Clear the virtual and strm link path from the playlist.
             '''
             LOG.info("emby-loading.mp4 detected.")
+            loading_position = xbmc.PlayList(xbmc.PLAYLIST_VIDEO).getposition() or 0
+            window('emby_loadingvideo_position', str(loading_position))
             self.pause()
-
-            xbmc.PlayList(xbmc.PLAYLIST_VIDEO).remove(xbmc.getInfoLabel('Player.Filenameandpath')) #TODO detect the right playlist
+            #xbmc.PlayList(xbmc.PLAYLIST_VIDEO).remove(xbmc.getInfoLabel('Player.Filenameandpath')) #TODO detect the right playlist
             window('emby_loadingvideo.bool', True)
 
             return
+
 
         items = window('emby_play.json')
         item = None
@@ -214,7 +216,7 @@ class Player(xbmc.Player):
             audio = result['currentaudiostream']['index']
         except (KeyError, TypeError):
             audio = 0
-        
+
         try: # Subtitles tracks
             subs = result['currentsubtitle']['index']
         except (KeyError, TypeError):
@@ -374,7 +376,7 @@ class Player(xbmc.Player):
         item['Server']['api'].session_progress(data)
 
     def onPlayBackStopped(self):
-        
+
         ''' Will be called when user stops playing a file.
         '''
         window('emby_play', clear=True)
@@ -382,14 +384,14 @@ class Player(xbmc.Player):
         LOG.info("--<[ playback ]")
 
     def onPlayBackEnded(self):
-        
+
         ''' Will be called when kodi stops playing a file.
         '''
         self.stop_playback()
         LOG.info("--<<[ playback ]")
 
     def stop_playback(self):
-        
+
         ''' Stop all playback. Check for external player for positionticks.
         '''
         if not self.played:
